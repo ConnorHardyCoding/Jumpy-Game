@@ -6,6 +6,7 @@ FPS = 60
 FONT_NAME = "arial"
 HS_FILE = "highscore.txt"
 SPRITESHEET = "spritesheet_jumper.png"
+SONG_VOLUME = 0.3
 
 # Player properties
 PLAYER_ACC = 0.5
@@ -16,6 +17,12 @@ PLAYER_JUMP = 25
 # game properties
 BOOST_POWER = 60
 POW_SPAWN_PCT = 7
+MOB_FREQUENCY = 5000
+PLAYER_LAYER = 2
+PLATFORM_LAYER = 1
+POW_LAYER = 1
+MOB_LAYER = 2
+CLOUD_LAYER = 0
 
 # Starting platforms
 PLATFORM_LIST = [(0, HEIGHT - 60),

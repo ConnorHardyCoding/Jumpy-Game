@@ -31,21 +31,32 @@ class Game:
                 self.highscore = 0
         # load spritesheet image
         self.spritesheet = Spritesheet(path.join(img_dir, SPRITESHEET))
-
+        # cloud images
+        self.cloud_images = []
+        for i in range(1, 4):
+            self.cloud_images.append(pg.image.load(path.join(img_dir, "cloud{}.png".format(i))).convert())
         # load sounds
         self.snd_dir = path.join(self.dir, "snd")
         self.jump_sound = pg.mixer.Sound(path.join(self.snd_dir, "jump.wav"))
+        self.boost_sound = pg.mixer.Sound(path.join(self.snd_dir, "boost.wav"))
     
     def new(self):
         # starts a new game
         self.score = 0
-        self.all_sprites = pg.sprite.Group()
+        self.all_sprites = pg.sprite.LayeredUpdates()
         self.platforms = pg.sprite.Group()
         self.powerups = pg.sprite.Group()
+        self.mobs = pg.sprite.Group()
+        self.clouds = pg.sprite.Group()
         self.player = Player(self)
         for plat in PLATFORM_LIST:
             Platform(self, *plat)
-            pg.mixer.music.load(path.join(self.snd_dir, "jumpy_song.ogg"))
+        self.mob_timer = 0
+        pg.mixer.music.load(path.join(self.snd_dir, "jumpy_song.ogg"))
+        pg.mixer.music.set_volume(SONG_VOLUME)
+        for i in range(2):
+            c = Cloud(self)
+            c.rect.y += 500
         self.run()
 
     def run(self):
@@ -62,6 +73,18 @@ class Game:
     def update(self):
         # Game loop - update
         self.all_sprites.update()
+
+        # spawn a mob? 
+        now = pg.time.get_ticks()
+        if now - self.mob_timer > 3000 + random.choice([-1000, -500, 0, 500, 1000]):
+            self.mob_timer = now
+            Mob(self)
+
+        # hit mobs?
+        mob_hits = pg.sprite.spritecollide(self.player, self.mobs, False, pg.sprite.collide_mask)
+        if mob_hits:
+            self.playing = False
+
         # Check if player hits a platform only if falling
         if self.player.vel.y > 0:
             hits = pg.sprite.spritecollide(self.player, self.platforms, False)
@@ -81,13 +104,27 @@ class Game:
 
         # if player reaches top 1/4 of screen
         if self.player.rect.top <= HEIGHT / 4:
+            if random.randrange(100) < 6:
+                Cloud(self)
             self.player.pos.y += max(abs(self.player.vel.y), 2)
+            for cloud in self.clouds:
+                cloud.rect.y += max(abs(self.player.vel.y/2), 2)
+            for mob in self.mobs:
+                mob.rect.y += max(abs(self.player.vel.y), 2)
             for plat in self.platforms:
                 plat.rect.y += max(abs(self.player.vel.y), 2)
                 if plat.rect.top >= HEIGHT:
                     plat.kill()
                     self.score += 10
         
+        # if player gets a power up
+        pow_hits = pg.sprite.spritecollide(self.player, self.powerups, True)
+        for pow in pow_hits:
+            if pow.type == "boost":
+                self.boost_sound.play()
+                self.player.vel.y = -BOOST_POWER
+                self.player.jumping = False
+
         # DIE...
         if self.player.rect.bottom > HEIGHT:
             for sprite in self.all_sprites:
@@ -123,7 +160,6 @@ class Game:
         # Game loop - draw
         self.screen.fill(BGCOLOR)
         self.all_sprites.draw(self.screen)
-        self.screen.blit(self.player.image, self.player.rect)
         self.draw_text(str(self.score), 22, WHITE, WIDTH/2, 15)
         # *after* drawing everything, flip the display
         pg.display.flip()
@@ -131,6 +167,7 @@ class Game:
     def show_start_screen(self):
         # Game start screen
         pg.mixer.music.load(path.join(self.snd_dir, "jumpy_intro_song.ogg"))
+        pg.mixer.music.set_volume(SONG_VOLUME)
         pg.mixer.music.play(loops=-1)
         self.screen.fill(BGCOLOR)
         self.draw_text(TITLE, 48, WHITE, WIDTH/2, HEIGHT/4)
@@ -146,6 +183,7 @@ class Game:
         if not self.running:
             return
         pg.mixer.music.load(path.join(self.snd_dir, "jumpy_intro_song.ogg"))
+        pg.mixer.music.set_volume(SONG_VOLUME)
         pg.mixer.music.play(loops=-1)
         self.screen.fill(BGCOLOR)
         self.draw_text("GAME OVER", 48, WHITE, WIDTH/2, HEIGHT/4)
