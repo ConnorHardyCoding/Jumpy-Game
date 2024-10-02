@@ -1,1 +1,1 @@
-Followed a tutorial from kidscancode.org, music made by myself, sprites from kenney.nl.
+Jumpy game, music made by myself, sprites from kenney.nl.
